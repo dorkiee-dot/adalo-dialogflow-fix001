@@ -1,19 +1,16 @@
 {
   "version": 2,
   "builds": [
-    { 
+    {
       "src": "api/dialogflow.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node@latest"
     }
   ],
   "routes": [
     {
       "src": "/api/dialogflow",
-      "dest": "api/dialogflow.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "api/dialogflow.js"
+      "dest": "/api/dialogflow.js",
+      "methods": ["POST", "OPTIONS"]
     }
   ],
   "regions": ["iad1"]
