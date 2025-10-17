@@ -1,0 +1,56 @@
+import { GoogleAuth } from 'google-auth-library';
+
+export default async function handler(req, res) {
+  // ✅ Allow CORS (needed for Adalo)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight (OPTIONS) request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+  }
+
+  try {
+    const { sessionId, queryInput } = req.body || {};
+    if (!sessionId || !queryInput) {
+      return res.status(400).json({ error: 'Missing sessionId or queryInput.' });
+    }
+
+    const jsonKey = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (!jsonKey) {
+      return res.status(500).json({ error: 'Missing Google service account JSON.' });
+    }
+
+    const credentials = JSON.parse(jsonKey);
+    const auth = new GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+
+    const client = await auth.getClient();
+    const accessToken = (await client.getAccessToken()).token;
+    const projectId = credentials.project_id;
+
+    const url = `https://dialogflow.googleapis.com/v2/projects/${projectId}/agent/sessions/${encodeURIComponent(sessionId)}:detectIntent`;
+
+    const dialogflowResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ queryInput }),
+    });
+
+    const data = await dialogflowResponse.json();
+    return res.status(dialogflowResponse.status).json(data);
+  } catch (err) {
+    console.error('Dialogflow proxy error:', err);
+    return res.status(500).json({ error: err.message || 'Unknown error' });
+  }
+}

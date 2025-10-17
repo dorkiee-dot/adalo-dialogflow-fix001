@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/dialogflow.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/dialogflow", "dest": "/api/dialogflow.js" },
+    { "src": "/voice", "dest": "/api/dialogflow.js" },
+    { "src": "/api/(.*)", "dest": "/api/dialogflow.js" }
+  ]
+}
